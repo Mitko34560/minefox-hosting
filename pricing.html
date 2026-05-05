@@ -28,9 +28,7 @@
 
     <section class="pricing-section">
         <div class="container">
-            <div class="pricing-grid" id="pricingGrid">
-                <!-- Plans will be populated by JavaScript -->
-            </div>
+            <div class="pricing-grid" id="pricingGrid"></div>
         </div>
     </section>
 
@@ -40,19 +38,19 @@
             <div class="faq-grid">
                 <div class="faq-item">
                     <h4>Can I upgrade my plan?</h4>
-                    <p>Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
+                    <p>Yes, you can upgrade or downgrade your plan at any time.</p>
                 </div>
                 <div class="faq-item">
                     <h4>Is there a free trial?</h4>
-                    <p>Yes! All new users get a 2-day free trial. No credit card required to start.</p>
+                    <p>Yes! All new users get a 2-day free trial. No credit card required.</p>
                 </div>
                 <div class="faq-item">
                     <h4>What payment methods do you accept?</h4>
-                    <p>We accept all major credit cards through Stripe. Payments are processed securely.</p>
+                    <p>We accept all major credit cards through Stripe Checkout.</p>
                 </div>
                 <div class="faq-item">
-                    <h4>Can I cancel anytime?</h4>
-                    <p>Yes, cancel your subscription at any time. Your server remains active until the end of your billing period.</p>
+                    <h4>Is the payment instant?</h4>
+                    <p>Yes! Your plan activates immediately after successful Stripe payment.</p>
                 </div>
             </div>
         </div>
@@ -101,7 +99,7 @@
             let html = '';
 
             const planKeys = Object.keys(PLANS);
-            planKeys.forEach((key, index) => {
+            planKeys.forEach((key) => {
                 const plan = PLANS[key];
                 const isFeatured = key === 'professional';
                 
@@ -123,7 +121,7 @@
                             <li><i class="fas fa-check"></i> 99.9% Uptime</li>
                             <li><i class="fas fa-check"></i> 24/7 Support</li>
                         </ul>
-                        <button class="btn btn-primary btn-block" onclick="choosePlan('${key}')">Choose Plan</button>
+                        <button class="btn btn-primary btn-block" onclick="choosePlan('${key}')">Pay with Stripe</button>
                     </div>
                 `;
             });
@@ -136,7 +134,7 @@
                 window.location.href = 'login.html';
                 return;
             }
-            window.location.href = 'payment.html?plan=' + planKey;
+            window.location.href = 'checkout.html?plan=' + planKey;
         }
 
         document.addEventListener('DOMContentLoaded', renderPricingPlans);

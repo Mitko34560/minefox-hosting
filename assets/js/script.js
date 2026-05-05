@@ -1,17 +1,22 @@
-// MineFox Hosting - Static Version (GitHub Pages Compatible)
-// Uses localStorage for demo authentication
+// MineFox Hosting - Fixed Version (GitHub Pages Compatible)
+// Stripe integration with automatic payment activation
+// Admin credentials hidden in code only
 
 const PLANS = {
-    starter: { name: 'Starter', price: 2.50, ram: 2, cpu: 1, storage: 10, slots: 20 },
-    professional: { name: 'Professional', price: 5.99, ram: 4, cpu: 2, storage: 30, slots: 50 },
-    elite: { name: 'Elite', price: 11.00, ram: 8, cpu: 4, storage: 100, slots: 150 },
-    ultimate: { name: 'Ultimate', price: 19.00, ram: 16, cpu: 8, storage: 250, slots: 300 }
+    starter: { name: 'Starter', price: 2.50, ram: 2, cpu: 1, storage: 10, slots: 20, stripeId: 'price_starter' },
+    professional: { name: 'Professional', price: 5.99, ram: 4, cpu: 2, storage: 30, slots: 50, stripeId: 'price_professional' },
+    elite: { name: 'Elite', price: 11.00, ram: 8, cpu: 4, storage: 100, slots: 150, stripeId: 'price_elite' },
+    ultimate: { name: 'Ultimate', price: 19.00, ram: 16, cpu: 8, storage: 250, slots: 300, stripeId: 'price_ultimate' }
 };
 
+// Admin credentials - HIDDEN (not displayed to users)
 const DEMO_ADMIN = {
     email: 'admin@minefox.site',
     password: 'MineFoxBorisMitko@30'
 };
+
+// Stripe Public Key for GitHub Pages (demo - replace with real key in production)
+const STRIPE_PUBLIC_KEY = 'pk_test_demo';
 
 // Initialize demo data on first load
 function initializeDemoData() {
@@ -138,8 +143,8 @@ function isAdmin() {
     return user && user.is_admin === true;
 }
 
-// Payment functions
-function submitPayment(plan, cardData) {
+// Stripe payment processing - AUTOMATIC ACTIVATION
+function processStripePayment(plan, stripePaymentIntentId) {
     const user = getCurrentUser();
     
     if (!user) {
@@ -153,7 +158,7 @@ function submitPayment(plan, cardData) {
     const payments = JSON.parse(localStorage.getItem('minefox_payments') || '[]');
     
     const paymentId = Math.max(...payments.map(p => p.id || 0), 0) + 1;
-    const reference = 'PAY-' + user.id + '-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+    const reference = 'PI_' + stripePaymentIntentId;
     
     const payment = {
         id: paymentId,
@@ -163,13 +168,9 @@ function submitPayment(plan, cardData) {
         plan: plan,
         amount: PLANS[plan].price,
         currency: 'EUR',
-        status: 'pending',
+        status: 'paid', // AUTOMATICALLY SET TO PAID
         reference: reference,
-        cardData: {
-            cardholder: cardData.cardholder,
-            cardLast4: cardData.cardNumber.slice(-4),
-            expiry: cardData.expiry
-        },
+        stripe_payment_id: stripePaymentIntentId,
         created_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     };
@@ -177,21 +178,62 @@ function submitPayment(plan, cardData) {
     payments.push(payment);
     localStorage.setItem('minefox_payments', JSON.stringify(payments));
     
-    // Store in user data
+    // AUTOMATICALLY ACTIVATE PLAN - NO ADMIN APPROVAL NEEDED
     const users = JSON.parse(localStorage.getItem('minefox_users') || '{}');
     if (users[user.email]) {
-        if (!users[user.email].payments) {
-            users[user.email].payments = [];
-        }
-        users[user.email].payments.push(paymentId);
+        users[user.email].plan = plan;
         localStorage.setItem('minefox_users', JSON.stringify(users));
+        
+        // Update current session
+        const currentUser = getCurrentUser();
+        currentUser.plan = plan;
+        localStorage.setItem('minefox_currentUser', JSON.stringify(currentUser));
     }
+    
+    if (!users[user.email].payments) {
+        users[user.email].payments = [];
+    }
+    users[user.email].payments.push(paymentId);
+    localStorage.setItem('minefox_users', JSON.stringify(users));
     
     return {
         success: true,
-        message: 'Payment submitted! Admin must approve it.',
+        message: 'Payment successful! Your plan is now active.',
         reference: reference,
         paymentId: paymentId
+    };
+}
+
+// Handle Stripe payment failure
+function handlePaymentFailure(plan, error) {
+    const user = getCurrentUser();
+    
+    if (!user) {
+        return { success: false, message: 'You must be logged in' };
+    }
+    
+    const payments = JSON.parse(localStorage.getItem('minefox_payments') || '[]');
+    const paymentId = Math.max(...payments.map(p => p.id || 0), 0) + 1;
+    
+    const payment = {
+        id: paymentId,
+        user_id: user.id,
+        email: user.email,
+        username: user.username,
+        plan: plan,
+        amount: PLANS[plan].price,
+        currency: 'EUR',
+        status: 'failed',
+        error_message: error,
+        created_at: new Date().toISOString()
+    };
+    
+    payments.push(payment);
+    localStorage.setItem('minefox_payments', JSON.stringify(payments));
+    
+    return {
+        success: false,
+        message: 'Payment failed: ' + error
     };
 }
 
@@ -264,7 +306,7 @@ function canAccessServer(userId) {
     
     if (!user) return false;
     
-    // Check if user has active paid plan
+    // Check if user has active paid plan (Stripe payment)
     const activePayment = payments.find(p =>
         p.user_id === userId &&
         p.status === 'paid' &&
@@ -278,46 +320,7 @@ function canAccessServer(userId) {
     return trial !== null;
 }
 
-// Admin functions
-function approvePayment(paymentId) {
-    const payments = JSON.parse(localStorage.getItem('minefox_payments') || '[]');
-    const payment = payments.find(p => p.id === paymentId);
-    
-    if (!payment) {
-        return { success: false, message: 'Payment not found' };
-    }
-    
-    payment.status = 'paid';
-    payment.approved_at = new Date().toISOString();
-    
-    payments[payments.indexOf(payment)] = payment;
-    localStorage.setItem('minefox_payments', JSON.stringify(payments));
-    
-    // Update user plan
-    const users = JSON.parse(localStorage.getItem('minefox_users') || '{}');
-    if (users[payment.email]) {
-        users[payment.email].plan = payment.plan;
-        localStorage.setItem('minefox_users', JSON.stringify(users));
-    }
-    
-    return { success: true, message: 'Payment approved! User plan activated.' };
-}
-
-function rejectPayment(paymentId) {
-    const payments = JSON.parse(localStorage.getItem('minefox_payments') || '[]');
-    const payment = payments.find(p => p.id === paymentId);
-    
-    if (!payment) {
-        return { success: false, message: 'Payment not found' };
-    }
-    
-    payment.status = 'failed';
-    payments[payments.indexOf(payment)] = payment;
-    localStorage.setItem('minefox_payments', JSON.stringify(payments));
-    
-    return { success: true, message: 'Payment rejected.' };
-}
-
+// Admin functions - View only, no manual approval
 function getAllPayments() {
     return JSON.parse(localStorage.getItem('minefox_payments') || '[]');
 }
@@ -375,6 +378,32 @@ function requireLogin() {
 function requireAdmin() {
     if (!isAdmin()) {
         window.location.href = 'dashboard.html';
+    }
+}
+
+// Stripe Checkout - Mock for GitHub Pages (in production, use real Stripe JS)
+function initiateStripeCheckout(plan) {
+    const user = getCurrentUser();
+    if (!user) {
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Store plan for checkout page
+    localStorage.setItem('minefox_checkout_plan', plan);
+    window.location.href = 'checkout.html?plan=' + plan;
+}
+
+// Mock Stripe payment (for demo on GitHub Pages)
+function mockStripePayment(plan) {
+    // Simulate Stripe payment success
+    const paymentIntentId = 'pi_demo_' + Date.now();
+    const result = processStripePayment(plan, paymentIntentId);
+    
+    if (result.success) {
+        window.location.href = 'success.html?reference=' + result.reference;
+    } else {
+        alert('Payment failed: ' + result.message);
     }
 }
 

@@ -30,7 +30,6 @@
             <nav class="sidebar-menu">
                 <a href="dashboard.html" class="sidebar-link active"><i class="fas fa-home"></i> Dashboard</a>
                 <a href="pricing.html" class="sidebar-link"><i class="fas fa-shopping-cart"></i> Upgrade Plan</a>
-                <a href="admin.html" id="adminLink" style="display:none;" class="sidebar-link"><i class="fas fa-sliders-h"></i> Admin Panel</a>
                 <a href="#" onclick="logout(); location.href='login.html'; return false;" class="sidebar-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </nav>
         </aside>
@@ -38,7 +37,7 @@
         <main class="dashboard-main">
             <section class="welcome-section">
                 <h1>Dashboard</h1>
-                <p>Manage your Minecraft servers</p>
+                <p>Your Minecraft server hosting</p>
             </section>
 
             <section class="status-cards">
@@ -76,15 +75,6 @@
             </section>
 
             <div id="actionSection"></div>
-
-            <section class="servers-section" id="serversSection" style="display:none;">
-                <h2>Your Servers</h2>
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <p>No servers yet. Create your first server to get started.</p>
-                    <a href="pricing.html" class="btn btn-primary">Create Server</a>
-                </div>
-            </section>
         </main>
     </div>
 
@@ -101,27 +91,17 @@
                 return;
             }
 
-            // Update profile
             document.getElementById('username').textContent = user.username;
             document.getElementById('useremail').textContent = user.email;
 
-            // Show admin link if admin
-            if (user.is_admin) {
-                document.getElementById('adminLink').style.display = 'flex';
-            }
-
-            // Get user data
             const users = JSON.parse(localStorage.getItem('minefox_users') || '{}');
-            const userData = users[user.email];
             const payments = JSON.parse(localStorage.getItem('minefox_payments') || '[]');
             const trials = JSON.parse(localStorage.getItem('minefox_trials') || '[]');
 
-            // Update current plan
             if (user.plan && user.plan !== 'none' && PLANS[user.plan]) {
                 document.getElementById('currentPlan').textContent = PLANS[user.plan].name;
             }
 
-            // Update trial status
             const userTrial = trials.find(t => t.user_id === user.id);
             if (userTrial && userTrial.status === 'active') {
                 const endDate = new Date(userTrial.trial_end);
@@ -132,7 +112,6 @@
                 document.getElementById('trialStatus').innerHTML = `<span class="badge badge-success">${daysRemaining}d ${hoursPart}h left</span>`;
             }
 
-            // Update payment status
             const activePayment = payments.find(p =>
                 p.user_id === user.id &&
                 p.status === 'paid' &&
@@ -143,16 +122,13 @@
                 document.getElementById('paymentStatus').innerHTML = `<span class="badge badge-success">Active</span>`;
             }
 
-            // Update access status
             const canAccess = canAccessServer(user.id);
             if (canAccess) {
                 document.getElementById('accessStatus').innerHTML = `<span class="badge badge-success">Active</span>`;
-                document.getElementById('serversSection').style.display = 'block';
             } else {
                 document.getElementById('accessStatus').innerHTML = `<span class="badge badge-danger">Inactive</span>`;
 
-                // Show action buttons
-                let actionHTML = '<section class="alert-section"><div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i><div><h3>Action Required</h3><p>Your server access is inactive. Start a free 2-day trial or choose a plan to continue.</p></div></div></section>';
+                let actionHTML = '<section class="alert-section"><div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i><div><h3>Get Started</h3><p>Start a free 2-day trial or choose a plan to access your servers.</p></div></div></section>';
                 actionHTML += '<section class="action-buttons">';
 
                 if (!userTrial) {
