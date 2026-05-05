@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - MineFox Hosting</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo"><span class="logo-text"><span class="logo-mine">MINE</span><span class="logo-fox">FOX</span></span></a>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="pricing.html" class="nav-link active">Pricing</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section class="pricing-hero">
+        <div class="pricing-hero-content">
+            <h1>Simple, Transparent Pricing</h1>
+            <p>Choose the perfect plan for your Minecraft server</p>
+        </div>
+    </section>
+
+    <section class="pricing-section">
+        <div class="container">
+            <div class="pricing-grid" id="pricingGrid">
+                <!-- Plans will be populated by JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <section class="faq-section">
+        <div class="container">
+            <h2>Frequently Asked Questions</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h4>Can I upgrade my plan?</h4>
+                    <p>Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
+                </div>
+                <div class="faq-item">
+                    <h4>Is there a free trial?</h4>
+                    <p>Yes! All new users get a 2-day free trial. No credit card required to start.</p>
+                </div>
+                <div class="faq-item">
+                    <h4>What payment methods do you accept?</h4>
+                    <p>We accept all major credit cards through Stripe. Payments are processed securely.</p>
+                </div>
+                <div class="faq-item">
+                    <h4>Can I cancel anytime?</h4>
+                    <p>Yes, cancel your subscription at any time. Your server remains active until the end of your billing period.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>MineFox Hosting</h4>
+                <p>Premium Minecraft server hosting for gamers who demand excellence.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Quick Links</h4>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="pricing.html">Pricing</a></li>
+                    <li><a href="login.html">Login</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Documentation</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Contact Support</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Follow Us</h4>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-discord"></i></a>
+                    <a href="#"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2024 MineFox Hosting. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="assets/js/script.js"></script>
+    <script>
+        function renderPricingPlans() {
+            const grid = document.getElementById('pricingGrid');
+            let html = '';
+
+            const planKeys = Object.keys(PLANS);
+            planKeys.forEach((key, index) => {
+                const plan = PLANS[key];
+                const isFeatured = key === 'professional';
+                
+                html += `
+                    <div class="pricing-card ${isFeatured ? 'featured' : ''}">
+                        ${isFeatured ? '<div class="plan-badge premium">BEST VALUE</div>' : ''}
+                        <h3>${plan.name}</h3>
+                        <div class="plan-price">
+                            <span class="currency">€</span>
+                            <span class="amount">${plan.price.toFixed(2)}</span>
+                            <span class="period">/month</span>
+                        </div>
+                        <ul class="plan-features">
+                            <li><i class="fas fa-check"></i> ${plan.ram} GB RAM</li>
+                            <li><i class="fas fa-check"></i> ${plan.cpu} CPU Cores</li>
+                            <li><i class="fas fa-check"></i> ${plan.storage} GB Storage</li>
+                            <li><i class="fas fa-check"></i> ${plan.slots} Player Slots</li>
+                            <li><i class="fas fa-check"></i> DDoS Protection</li>
+                            <li><i class="fas fa-check"></i> 99.9% Uptime</li>
+                            <li><i class="fas fa-check"></i> 24/7 Support</li>
+                        </ul>
+                        <button class="btn btn-primary btn-block" onclick="choosePlan('${key}')">Choose Plan</button>
+                    </div>
+                `;
+            });
+
+            grid.innerHTML = html;
+        }
+
+        function choosePlan(planKey) {
+            if (!isLoggedIn()) {
+                window.location.href = 'login.html';
+                return;
+            }
+            window.location.href = 'payment.html?plan=' + planKey;
+        }
+
+        document.addEventListener('DOMContentLoaded', renderPricingPlans);
+    </script>
+</body>
+</html>

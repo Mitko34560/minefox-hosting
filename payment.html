@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - MineFox Hosting</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo"><span class="logo-text"><span class="logo-mine">MINE</span><span class="logo-fox">FOX</span></span></a>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+                <li><a href="pricing.html" class="nav-link">Pricing</a></li>
+                <li><a href="#" onclick="logout(); location.href='login.html'; return false;" class="nav-link btn-nav">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="payment-container">
+        <div class="payment-content">
+            <div class="payment-left">
+                <div class="payment-card">
+                    <div class="payment-header">
+                        <h1>Complete Payment</h1>
+                        <p id="planNameText"></p>
+                    </div>
+
+                    <div id="alert"></div>
+
+                    <form class="payment-form" onsubmit="handlePayment(event)" id="paymentForm">
+                        <div class="form-group">
+                            <label>Cardholder Name</label>
+                            <input type="text" name="cardholder" placeholder="John Doe" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Card Number</label>
+                            <input type="text" name="cardNumber" placeholder="4532 1234 5678 9010" maxlength="19" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Expiry Date</label>
+                                <input type="text" name="expiry" placeholder="MM/YY" maxlength="5" required>
+                            </div>
+                            <div class="form-group">
+                                <label>CVC</label>
+                                <input type="text" name="cvc" placeholder="123" maxlength="4" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label><input type="checkbox" required> I agree to the Terms & Conditions</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-block" id="submitBtn"></button>
+                    </form>
+
+                    <p class="payment-note"><i class="fas fa-lock"></i> Your payment is secure and encrypted</p>
+                </div>
+            </div>
+
+            <div class="payment-right">
+                <div class="payment-summary">
+                    <h3>Order Summary</h3>
+                    <div class="summary-item">
+                        <span id="summaryPlanName"></span>
+                        <span id="summaryPrice"></span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Billing Period</span>
+                        <span>1 Month</span>
+                    </div>
+                    <div class="summary-total">
+                        <span>Total</span>
+                        <span id="summaryTotal"></span>
+                    </div>
+
+                    <div class="plan-specs" id="planSpecs">
+                        <!-- Plan specs will be populated here -->
+                    </div>
+
+                    <div class="payment-status-info">
+                        <p><strong>⚠️ Demo Mode:</strong></p>
+                        <p>This is a demo payment. Click "Pay" to submit a demo payment that will require admin approval.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom"><p>&copy; 2024 MineFox Hosting. All rights reserved.</p></div>
+    </footer>
+
+    <script src="assets/js/script.js"></script>
+    <script>
+        function getUrlParameter(name) {
+            const url = new URLSearchParams(window.location.search);
+            return url.get(name);
+        }
+
+        function initializePayment() {
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const planKey = getUrlParameter('plan');
+            if (!planKey || !PLANS[planKey]) {
+                window.location.href = 'pricing.html';
+                return;
+            }
+
+            const plan = PLANS[planKey];
+            const price = plan.price.toFixed(2);
+
+            // Update text
+            document.getElementById('planNameText').textContent = `Secure payment for ${plan.name} plan`;
+            document.getElementById('summaryPlanName').textContent = `${plan.name} Plan`;
+            document.getElementById('summaryPrice').textContent = `€${price}`;
+            document.getElementById('summaryTotal').textContent = `€${price}`;
+            document.getElementById('submitBtn').textContent = `Pay €${price}`;
+
+            // Update plan specs
+            let specsHTML = '<h4>Plan Includes:</h4><ul>';
+            specsHTML += `<li>${plan.ram} GB RAM</li>`;
+            specsHTML += `<li>${plan.cpu} CPU Cores</li>`;
+            specsHTML += `<li>${plan.storage} GB Storage</li>`;
+            specsHTML += `<li>${plan.slots} Player Slots</li>`;
+            specsHTML += '<li>DDoS Protection</li>';
+            specsHTML += '<li>99.9% Uptime SLA</li>';
+            specsHTML += '<li>24/7 Support</li>';
+            specsHTML += '</ul>';
+            document.getElementById('planSpecs').innerHTML = specsHTML;
+
+            // Store plan key for submission
+            window.currentPlan = planKey;
+        }
+
+        function handlePayment(event) {
+            event.preventDefault();
+
+            const user = getCurrentUser();
+            const form = event.target;
+            const formData = new FormData(form);
+
+            const cardData = {
+                cardholder: formData.get('cardholder'),
+                cardNumber: formData.get('cardNumber'),
+                expiry: formData.get('expiry'),
+                cvc: formData.get('cvc')
+            };
+
+            const result = submitPayment(window.currentPlan, cardData);
+
+            if (result.success) {
+                showAlert('success', result.message + ' Reference: ' + result.reference);
+                setTimeout(() => {
+                    window.location.href = 'success.html?reference=' + result.reference;
+                }, 2000);
+            } else {
+                showAlert('error', result.message);
+            }
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.getElementById('alert');
+            alertDiv.innerHTML = `<div class="alert alert-${type}"><i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${message}</div>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', initializePayment);
+    </script>
+</body>
+</html>

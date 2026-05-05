@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - MineFox Hosting</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo"><span class="logo-text"><span class="logo-mine">MINE</span><span class="logo-fox">FOX</span></span></a>
+            <ul class="nav-menu">
+                <li><a href="admin.html" class="nav-link active">Admin Panel</a></li>
+                <li><a href="dashboard.html" class="nav-link">Dashboard</a></li>
+                <li><a href="#" onclick="logout(); location.href='login.html'; return false;" class="nav-link btn-nav">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <main class="admin-main">
+            <section class="welcome-section">
+                <h1>Admin Dashboard</h1>
+                <p>Manage MineFox Hosting Platform</p>
+            </section>
+
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Users</div>
+                        <div class="stat-value" id="totalUsers">0</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-credit-card"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Payments</div>
+                        <div class="stat-value" id="totalPayments">0</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-label">Active Trials</div>
+                        <div class="stat-value" id="activeTrials">0</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="stat-content">
+                        <div class="stat-label">⚠️ Pending Payments</div>
+                        <div class="stat-value" style="color: #FF6A00;" id="pendingPayments">0</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="admin-section">
+                <h2>Pending Payments (Action Required)</h2>
+                <div class="table-responsive" id="pendingTable"></div>
+            </section>
+
+            <section class="admin-section">
+                <h2>All Payments</h2>
+                <div class="table-responsive" id="allPaymentsTable"></div>
+            </section>
+
+            <section class="admin-section">
+                <h2>All Users</h2>
+                <div class="table-responsive" id="allUsersTable"></div>
+            </section>
+
+            <section class="admin-section">
+                <h2>Active Trials</h2>
+                <div class="table-responsive" id="trialsTable"></div>
+            </section>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom"><p>&copy; 2024 MineFox Hosting. Admin Panel</p></div>
+    </footer>
+
+    <script src="assets/js/script.js"></script>
+    <script>
+        function loadAdminData() {
+            const user = getCurrentUser();
+            if (!user || !user.is_admin) {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            const users = getAllUsers();
+            const payments = getAllPayments();
+            const trials = getAllTrials();
+
+            // Update stats
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('totalPayments').textContent = payments.length;
+
+            const activeTrials = trials.filter(t => t.status === 'active').length;
+            document.getElementById('activeTrials').textContent = activeTrials;
+
+            const pending = payments.filter(p => p.status === 'pending').length;
+            document.getElementById('pendingPayments').textContent = pending;
+
+            // Render pending payments table
+            renderPendingPayments(payments);
+
+            // Render all payments table
+            renderAllPayments(payments);
+
+            // Render users table
+            renderAllUsers(users);
+
+            // Render trials table
+            renderTrials(trials);
+        }
+
+        function renderPendingPayments(payments) {
+            const pending = payments.filter(p => p.status === 'pending');
+
+            if (pending.length === 0) {
+                document.getElementById('pendingTable').innerHTML = '<p style="color: #4CAF50; text-align: center; padding: 2rem;"><i class="fas fa-check-circle"></i> No pending payments</p>';
+                return;
+            }
+
+            let html = `
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Plan</th>
+                            <th>Amount</th>
+                            <th>Reference</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            pending.forEach(payment => {
+                html += `
+                    <tr>
+                        <td>${payment.username}</td>
+                        <td>${payment.email}</td>
+                        <td>${payment.plan}</td>
+                        <td>€${payment.amount.toFixed(2)}</td>
+                        <td><small>${payment.reference}</small></td>
+                        <td>${formatDate(payment.created_at)}</td>
+                        <td>
+                            <button class="btn-approve" onclick="approvePaymentClick(${payment.id})">✓ Approve</button>
+                            <button class="btn-reject" onclick="rejectPaymentClick(${payment.id})">✗ Reject</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('pendingTable').innerHTML = html;
+        }
+
+        function renderAllPayments(payments) {
+            if (payments.length === 0) {
+                document.getElementById('allPaymentsTable').innerHTML = '<p style="color: #CFCFCF; text-align: center; padding: 2rem;">No payments yet</p>';
+                return;
+            }
+
+            let html = `
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Plan</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            payments.slice().reverse().forEach(payment => {
+                const statusColor = payment.status === 'paid' ? 'badge-success' : payment.status === 'pending' ? 'badge-pending' : 'badge-danger';
+                html += `
+                    <tr>
+                        <td>${payment.username}</td>
+                        <td>${payment.plan}</td>
+                        <td>€${payment.amount.toFixed(2)}</td>
+                        <td><span class="badge ${statusColor}">${payment.status}</span></td>
+                        <td>${formatDate(payment.created_at)}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('allPaymentsTable').innerHTML = html;
+        }
+
+        function renderAllUsers(users) {
+            if (users.length === 0) {
+                document.getElementById('allUsersTable').innerHTML = '<p style="color: #CFCFCF; text-align: center; padding: 2rem;">No users yet</p>';
+                return;
+            }
+
+            let html = `
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Plan</th>
+                            <th>Role</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            users.forEach(user => {
+                html += `
+                    <tr>
+                        <td>${user.username}</td>
+                        <td>${user.email}</td>
+                        <td>${user.plan}</td>
+                        <td>${user.is_admin ? 'Admin' : 'User'}</td>
+                        <td>${new Date(user.created_at || Date.now()).toLocaleDateString()}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('allUsersTable').innerHTML = html;
+        }
+
+        function renderTrials(trials) {
+            const activeTrials = trials.filter(t => t.status === 'active');
+
+            if (activeTrials.length === 0) {
+                document.getElementById('trialsTable').innerHTML = '<p style="color: #CFCFCF; text-align: center; padding: 2rem;">No active trials</p>';
+                return;
+            }
+
+            let html = `
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Trial Start</th>
+                            <th>Trial End</th>
+                            <th>Remaining</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            activeTrials.forEach(trial => {
+                const endDate = new Date(trial.trial_end);
+                const now = new Date();
+                const hoursRemaining = Math.floor((endDate - now) / (1000 * 60 * 60));
+
+                html += `
+                    <tr>
+                        <td>${trial.user_id}</td>
+                        <td>${formatDate(trial.trial_start)}</td>
+                        <td>${formatDate(trial.trial_end)}</td>
+                        <td>${hoursRemaining}h</td>
+                        <td><span class="badge badge-success">Active</span></td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('trialsTable').innerHTML = html;
+        }
+
+        function approvePaymentClick(paymentId) {
+            const result = approvePayment(paymentId);
+            if (result.success) {
+                alert(result.message);
+                loadAdminData();
+            } else {
+                alert(result.message);
+            }
+        }
+
+        function rejectPaymentClick(paymentId) {
+            const result = rejectPayment(paymentId);
+            if (result.success) {
+                alert(result.message);
+                loadAdminData();
+            } else {
+                alert(result.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAdminData);
+    </script>
+</body>
+</html>

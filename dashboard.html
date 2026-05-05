@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - MineFox Hosting</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo"><span class="logo-text"><span class="logo-mine">MINE</span><span class="logo-fox">FOX</span></span></a>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link active">Dashboard</a></li>
+                <li><a href="pricing.html" class="nav-link">Pricing</a></li>
+                <li><a href="#" onclick="logout(); location.href='login.html'; return false;" class="nav-link btn-nav">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <aside class="dashboard-sidebar">
+            <div class="sidebar-profile">
+                <div class="profile-avatar"><i class="fas fa-user"></i></div>
+                <h4 id="username"></h4>
+                <p id="useremail"></p>
+            </div>
+            <nav class="sidebar-menu">
+                <a href="dashboard.html" class="sidebar-link active"><i class="fas fa-home"></i> Dashboard</a>
+                <a href="pricing.html" class="sidebar-link"><i class="fas fa-shopping-cart"></i> Upgrade Plan</a>
+                <a href="admin.html" id="adminLink" style="display:none;" class="sidebar-link"><i class="fas fa-sliders-h"></i> Admin Panel</a>
+                <a href="#" onclick="logout(); location.href='login.html'; return false;" class="sidebar-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </nav>
+        </aside>
+
+        <main class="dashboard-main">
+            <section class="welcome-section">
+                <h1>Dashboard</h1>
+                <p>Manage your Minecraft servers</p>
+            </section>
+
+            <section class="status-cards">
+                <div class="status-card">
+                    <div class="status-icon"><i class="fas fa-cube"></i></div>
+                    <div class="status-content">
+                        <div class="status-label">Current Plan</div>
+                        <div class="status-value" id="currentPlan">No Active Plan</div>
+                    </div>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-icon"><i class="fas fa-hourglass-half"></i></div>
+                    <div class="status-content">
+                        <div class="status-label">Free Trial</div>
+                        <div class="status-value" id="trialStatus">Not Started</div>
+                    </div>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-icon"><i class="fas fa-credit-card"></i></div>
+                    <div class="status-content">
+                        <div class="status-label">Payment Status</div>
+                        <div class="status-value" id="paymentStatus">Not Active</div>
+                    </div>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-icon"><i class="fas fa-server"></i></div>
+                    <div class="status-content">
+                        <div class="status-label">Server Access</div>
+                        <div class="status-value" id="accessStatus">Inactive</div>
+                    </div>
+                </div>
+            </section>
+
+            <div id="actionSection"></div>
+
+            <section class="servers-section" id="serversSection" style="display:none;">
+                <h2>Your Servers</h2>
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No servers yet. Create your first server to get started.</p>
+                    <a href="pricing.html" class="btn btn-primary">Create Server</a>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom"><p>&copy; 2024 MineFox Hosting. All rights reserved.</p></div>
+    </footer>
+
+    <script src="assets/js/script.js"></script>
+    <script>
+        function updateDashboard() {
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Update profile
+            document.getElementById('username').textContent = user.username;
+            document.getElementById('useremail').textContent = user.email;
+
+            // Show admin link if admin
+            if (user.is_admin) {
+                document.getElementById('adminLink').style.display = 'flex';
+            }
+
+            // Get user data
+            const users = JSON.parse(localStorage.getItem('minefox_users') || '{}');
+            const userData = users[user.email];
+            const payments = JSON.parse(localStorage.getItem('minefox_payments') || '[]');
+            const trials = JSON.parse(localStorage.getItem('minefox_trials') || '[]');
+
+            // Update current plan
+            if (user.plan && user.plan !== 'none' && PLANS[user.plan]) {
+                document.getElementById('currentPlan').textContent = PLANS[user.plan].name;
+            }
+
+            // Update trial status
+            const userTrial = trials.find(t => t.user_id === user.id);
+            if (userTrial && userTrial.status === 'active') {
+                const endDate = new Date(userTrial.trial_end);
+                const now = new Date();
+                const hoursRemaining = Math.floor((endDate - now) / (1000 * 60 * 60));
+                const daysRemaining = Math.floor(hoursRemaining / 24);
+                const hoursPart = hoursRemaining % 24;
+                document.getElementById('trialStatus').innerHTML = `<span class="badge badge-success">${daysRemaining}d ${hoursPart}h left</span>`;
+            }
+
+            // Update payment status
+            const activePayment = payments.find(p =>
+                p.user_id === user.id &&
+                p.status === 'paid' &&
+                new Date(p.expires_at) > new Date()
+            );
+
+            if (activePayment) {
+                document.getElementById('paymentStatus').innerHTML = `<span class="badge badge-success">Active</span>`;
+            }
+
+            // Update access status
+            const canAccess = canAccessServer(user.id);
+            if (canAccess) {
+                document.getElementById('accessStatus').innerHTML = `<span class="badge badge-success">Active</span>`;
+                document.getElementById('serversSection').style.display = 'block';
+            } else {
+                document.getElementById('accessStatus').innerHTML = `<span class="badge badge-danger">Inactive</span>`;
+
+                // Show action buttons
+                let actionHTML = '<section class="alert-section"><div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i><div><h3>Action Required</h3><p>Your server access is inactive. Start a free 2-day trial or choose a plan to continue.</p></div></div></section>';
+                actionHTML += '<section class="action-buttons">';
+
+                if (!userTrial) {
+                    actionHTML += '<button class="btn btn-primary" onclick="startFreeTrialClick()" style="width: 100%;"><i class="fas fa-gift"></i> Start 2-Day Free Trial</button>';
+                }
+
+                actionHTML += '<a href="pricing.html" class="btn btn-secondary" style="width: 100%; text-align: center; text-decoration: none; display: block;"><i class="fas fa-shopping-cart"></i> Choose a Plan</a>';
+                actionHTML += '</section>';
+
+                document.getElementById('actionSection').innerHTML = actionHTML;
+            }
+        }
+
+        function startFreeTrialClick() {
+            const user = getCurrentUser();
+            const result = startTrial(user.id);
+
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert(result.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', updateDashboard);
+    </script>
+</body>
+</html>

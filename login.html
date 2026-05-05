@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - MineFox Hosting</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo"><span class="logo-text"><span class="logo-mine">MINE</span><span class="logo-fox">FOX</span></span></a>
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Home</a></li>
+                <li><a href="pricing.html" class="nav-link">Pricing</a></li>
+                <li><a href="register.html" class="nav-link btn-nav">Register</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h1>Welcome Back</h1>
+                <p>Sign in to your MineFox account</p>
+            </div>
+
+            <div id="alert"></div>
+
+            <form class="auth-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="you@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+            </form>
+
+            <div class="auth-divider"><span>Don't have an account?</span></div>
+            <a href="register.html" class="btn btn-secondary btn-block">Create Account</a>
+
+            <div class="demo-info">
+                <p><strong>Demo Admin Account:</strong></p>
+                <p>Email: <code>admin@minefox.site</code></p>
+                <p>Password: <code>MineFoxBorisMitko@30</code></p>
+            </div>
+        </div>
+        <div class="auth-bg-glow"></div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-bottom"><p>&copy; 2024 MineFox Hosting. All rights reserved.</p></div>
+    </footer>
+
+    <script src="assets/js/script.js"></script>
+    <script>
+        function handleLogin(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const result = login(email, password);
+
+            if (result.success) {
+                showAlert('success', result.message);
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } else {
+                showAlert('error', result.message);
+            }
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.getElementById('alert');
+            alertDiv.innerHTML = `<div class="alert alert-${type}"><i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i> ${message}</div>`;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (isLoggedIn()) {
+                window.location.href = 'dashboard.html';
+            }
+        });
+    </script>
+</body>
+</html>
